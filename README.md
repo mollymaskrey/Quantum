@@ -6,59 +6,54 @@ This notebook implements a quantum-inspired optimization model to evaluate pharm
 
 A large PBM is demanding a 10-point rebate increase to retain formulary status for a specialty drug. Other PBMs (representing 27% of market share) are likely to demand similar concessions if the offer is too generous. The goal is to identify the rebate percentage that minimizes **total financial impact**, considering both:
 
-- Direct revenue loss from the rebate
+- Direct revenue loss from the rebate  
 - Indirect exposure to spillover effects from other PBMs
 
 ## 🎯 Objective Function
 
 Let:
 
-- `rᵢ ∈ {0, 1}` be a binary variable for rebate level *i* from 1% to 10%
-- `Tᵢ` be the **total financial impact** for rebate *i* (base loss + spillover risk)
-- `P` be the penalty weight for enforcing one-hot selection (set to 10,000 in the code)
+- \( r_i \in \{0, 1\} \): a binary variable for rebate level \( i \) from 1% to 10%  
+- \( T_i \): the **total financial impact** for rebate \( i \) (base loss + spillover risk)  
+- \( P \): the penalty weight for enforcing one-hot selection (set to 10,000 in the code)  
 
-The objective function being minimized is:
+Then the **objective function** being minimized is:
 
-```
-Minimize:  ∑(Tᵢ · rᵢ)  +  P · ( ∑(rᵢ) - 1 )²
-```
+\[
+\text{Minimize: } \sum_{i=1}^{10} T_i \cdot r_i + P \cdot \left( \sum_{i=1}^{10} r_i - 1 \right)^2
+\]
 
-### Breakdown
+**Breaking it down:**
 
-- `∑ Tᵢ · rᵢ`: actual financial cost (loss + risk)
-- `( ∑ rᵢ - 1 )²`: enforces one and only one rebate level is selected
-- `P`: large penalty to make the constraint hard (10,000)
+- \( \sum T_i \cdot r_i \): the actual **total impact** we want to minimize  
+- \( \left( \sum r_i - 1 \right)^2 \): the **one-hot constraint** — only one rebate can be selected  
+- \( P \): a large penalty ensuring the constraint is enforced  
 
 ## 🧠 In Practice (from code)
 
-Each `Tᵢ` is calculated as:
+Each \( T_i \) is computed as:
 
-```
-Tᵢ = base_loss[i] + follow_on_cost(i)
-```
+\[
+T_i = \text{base\_loss}[i] + \text{follow\_on\_cost}(i)
+\]
 
-Where `follow_on_cost(i)` is only non-zero when `i ≥ 9`.
+Only for \( i \geq 9 \), the follow-on cost is non-zero.
 
-The quadratic penalty term expands as:
+The quadratic penalty term expands into:
 
-```
-P · ( ∑ rᵢ² + 2∑₍ᵢ<ⱼ₎ rᵢ·rⱼ - 2∑ rᵢ + 1 )
-```
+\[
+P \cdot \left( \sum r_i^2 + 2 \sum_{i < j} r_i r_j - 2 \sum r_i + 1 \right)
+\]
 
-Since `rᵢ² = rᵢ` for binary variables, this simplifies to:
+Since \( r_i^2 = r_i \) for binary variables:
 
-```
-P · ( -∑ rᵢ + 2∑₍ᵢ<ⱼ₎ rᵢ·rⱼ + 1 )
-```
+\[
+P \cdot \left( - \sum r_i + 2 \sum_{i < j} r_i r_j + 1 \right)
+\]
 
-### Reflected in Code
+This is reflected in the code:
 
 ```python
-linear[variables[i]] += P       # adds penalty per variable
-quadratic[(r_i, r_j)] = 2 * P   # enforces exclusivity
-offset = -2 * P + P             # normalizes constant term
-```
-
----
-
-This BQM formulation supports execution on classical or quantum annealers. While small in scale, it demonstrates how quantum-ready architectures can be applied to real pharmaceutical contracting scenarios.
+linear[variables[i]] += P            # Adds penalty to each binary variable
+quadratic[(r_i, r_j)] = 2 * P        # Enforces exclusivity across pairs
+offset = -2 * P + P                  # Normalizes constant terms
