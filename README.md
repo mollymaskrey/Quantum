@@ -31,14 +31,13 @@ $\text{Minimize: } \sum_{i=1}^{10} T_i \cdot r_i + P \cdot \left( \sum_{i=1}^{10
 
 Each $T_i$ is computed as:
 
-$T_i = \text{base\_loss}[i] + \text{follow\_on\_cost}(i)$
+$T_i = \mathrm{baseLoss}_i + \mathrm{followOnCost}(i)$
 
 Only for $i \geq 9$, the follow-on cost is non-zero.
 
 The quadratic penalty term expands into:
 
-$P \cdot \left( \sum r_i^2 + 2 \sum_{i < j} r_i r_j - 2 \sum r_i + 1 \right)$
-
+$P \cdot ( \sum r_i - 1 )^2$
 Since $r_i^2 = r_i$ for binary variables:
 
 $P \cdot \left( - \sum r_i + 2 \sum_{i < j} r_i r_j + 1 \right)$
