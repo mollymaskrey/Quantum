@@ -1,58 +1,64 @@
-# 💊 Quantum Rebate Optimization
+# Quantum Rebate Optimization: PBM Tradeoff Modeling
 
-This project demonstrates how to formulate a real-world pharmacy rebate negotiation problem as a Quadratic Unconstrained Binary Optimization (QUBO) model. It's built using the D-Wave Ocean SDK and is designed for execution on a simulated annealer or quantum processing unit (QPU).
+This notebook implements a quantum-inspired optimization model to evaluate pharmaceutical rebate strategies under real-world market pressures. The example uses a Binary Quadratic Model (BQM) to assess the tradeoff between rebate generosity and the risk of triggering follow-on demands from competing Pharmacy Benefit Managers (PBMs).
 
----
+## 🔍 Problem Statement
 
-## 🎯 Objective
+A large PBM is demanding a 10-point rebate increase to retain formulary status for a specialty drug. Other PBMs (representing 27% of market share) are likely to demand similar concessions if the offer is too generous. The goal is to identify the rebate percentage that minimizes **total financial impact**, considering both:
 
-A Pharmacy Benefit Manager (PBM) offers 10 potential rebate levels, from 1% to 10%. The manufacturer must select one — and only one — level that minimizes total projected loss, which includes both base discounting and any anticipated market spillover risk from competitors.
+- Direct revenue loss from the rebate
+- Indirect exposure to spillover effects from other PBMs
 
-The goal: **select exactly one rebate level** that minimizes the following total cost.
-
-### 🔻 Objective Function
+## 🎯 Objective Function
 
 Let:
 
-- \( r_i \in \{0, 1\} \): a binary decision variable (1 if rebate level _i_ is chosen, 0 otherwise)
-- \( T_i \): total financial impact (base loss + spillover risk) of rebate level _i_
-- \( P \): penalty weight to enforce one-hot encoding (only one rebate can be selected)
+- `rᵢ ∈ {0, 1}` be a binary variable for rebate level *i* from 1% to 10%
+- `Tᵢ` be the **total financial impact** for rebate *i* (base loss + spillover risk)
+- `P` be the penalty weight for enforcing one-hot selection (set to 10,000 in the code)
 
-Then the function being minimized is:
+The objective function being minimized is:
 
-\[
-\text{Minimize: } \sum_{i=1}^{10} T_i \cdot r_i + P \cdot \left( \sum_{i=1}^{10} r_i - 1 \right)^2
-\]
+```
+Minimize:  ∑(Tᵢ · rᵢ)  +  P · ( ∑(rᵢ) - 1 )²
+```
+
+### Breakdown
+
+- `∑ Tᵢ · rᵢ`: actual financial cost (loss + risk)
+- `( ∑ rᵢ - 1 )²`: enforces one and only one rebate level is selected
+- `P`: large penalty to make the constraint hard (10,000)
+
+## 🧠 In Practice (from code)
+
+Each `Tᵢ` is calculated as:
+
+```
+Tᵢ = base_loss[i] + follow_on_cost(i)
+```
+
+Where `follow_on_cost(i)` is only non-zero when `i ≥ 9`.
+
+The quadratic penalty term expands as:
+
+```
+P · ( ∑ rᵢ² + 2∑₍ᵢ<ⱼ₎ rᵢ·rⱼ - 2∑ rᵢ + 1 )
+```
+
+Since `rᵢ² = rᵢ` for binary variables, this simplifies to:
+
+```
+P · ( -∑ rᵢ + 2∑₍ᵢ<ⱼ₎ rᵢ·rⱼ + 1 )
+```
+
+### Reflected in Code
+
+```python
+linear[variables[i]] += P       # adds penalty per variable
+quadratic[(r_i, r_j)] = 2 * P   # enforces exclusivity
+offset = -2 * P + P             # normalizes constant term
+```
 
 ---
 
-## 🧠 Interpreting the Model
-
-- \( \sum T_i \cdot r_i \): the total projected financial loss for the selected rebate
-- \( \left( \sum r_i - 1 \right)^2 \): a one-hot constraint to ensure exactly one rebate level is chosen
-- \( P \): a large penalty (10,000) used to strictly enforce the constraint
-
----
-
-## 🔢 QUBO Expansion
-
-The squared penalty expands into pairwise interactions:
-
-\[
-P \cdot \left( - \sum r_i + 2 \sum_{i<j} r_i r_j + 1 \right)
-\]
-
-This results in:
-
-- Linear coefficients (penalties): \( P \cdot r_i \)
-- Quadratic coefficients (cross-terms): \( 2P \cdot r_i r_j \)
-- Constant offset: \( -2P + P = -P \)
-
----
-
-## 📦 Requirements
-
-- Python 3.8+
-- D-Wave Ocean SDK  
-  ```bash
-  pip install dwave-ocean-sdk
+This BQM formulation supports execution on classical or quantum annealers. While small in scale, it demonstrates how quantum-ready architectures can be applied to real pharmaceutical contracting scenarios.
