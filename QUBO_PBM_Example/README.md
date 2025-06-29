@@ -59,13 +59,7 @@ This notebook can be used to evaluate whether offering a high rebate (e.g., 10%)
 ```
 quantum-rebate-optimizer/
 ├── README.md             # This file
-├── rebate_optimizer.ipynb  # Main Jupyter notebook
-├── data/
-│   └── inputs.csv        # Sample input cost data
-├── results/
-│   └── optimal_strategy.json  # Output from last run
-├── docs/
-│   └── qubo_formulation.pdf   # Math PDF (if LaTeX export desired)
+├── qubo_rebate.py        # Main program
 ```
 
 
