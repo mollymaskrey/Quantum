@@ -68,6 +68,14 @@ quantum-rebate-optimizer/
 │   └── qubo_formulation.pdf   # Math PDF (if LaTeX export desired)
 ```
 
+
+## 🔍 Output Example
+
+The plot below illustrates the output of the QUBO optimization: the lowest-energy state corresponds to a 4% rebate increase, yielding the optimal trade-off across base loss, follow-on penalties, and spillover risk from PBM_B and PBM_C.
+
+![PBM Optimization Output](PBM_low_energy.png)
+
+
 ## 🚀 Future Extensions
 
 * Integrate spillover elasticity modeling
