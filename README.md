@@ -13,47 +13,74 @@ A large PBM is demanding a 10-point rebate increase to retain formulary status f
 
 Let:
 
-- \( r_i \in \{0, 1\} \): a binary variable for rebate level \( i \) from 1% to 10%  
-- \( T_i \): the **total financial impact** for rebate \( i \) (base loss + spillover risk)  
-- \( P \): the penalty weight for enforcing one-hot selection (set to 10,000 in the code)  
+- `r_i ∈ {0, 1}`: a binary variable for rebate level `i` from 1% to 10%  
+- `T_i`: the **total financial impact** for rebate `i` (base loss + spillover risk)  
+- `P`: the penalty weight for enforcing one-hot selection (set to 10,000 in the code)  
 
 Then the **objective function** being minimized is:
 
-\[
-\text{Minimize: } \sum_{i=1}^{10} T_i \cdot r_i + P \cdot \left( \sum_{i=1}^{10} r_i - 1 \right)^2
-\]
+```
+Minimize:  ∑ T_i * r_i  +  P * (∑ r_i - 1)²
+```
 
 **Breaking it down:**
 
-- \( \sum T_i \cdot r_i \): the actual **total impact** we want to minimize  
-- \( \left( \sum r_i - 1 \right)^2 \): the **one-hot constraint** — only one rebate can be selected  
-- \( P \): a large penalty ensuring the constraint is enforced  
+- `∑ T_i * r_i`: the actual **total impact** we want to minimize  
+- `(∑ r_i - 1)²`: the **one-hot constraint** — only one rebate can be selected  
+- `P`: a large penalty ensuring the constraint is enforced  
 
 ## 🧠 In Practice (from code)
 
-Each \( T_i \) is computed as:
+Each `T_i` is computed as:
 
-\[
-T_i = \text{base\_loss}[i] + \text{follow\_on\_cost}(i)
-\]
+```
+T_i = base_loss[i] + follow_on_cost(i)
+```
 
-Only for \( i \geq 9 \), the follow-on cost is non-zero.
+Only for `i >= 9`, the follow-on cost is non-zero.
 
 The quadratic penalty term expands into:
 
-\[
-P \cdot \left( \sum r_i^2 + 2 \sum_{i < j} r_i r_j - 2 \sum r_i + 1 \right)
-\]
+```
+P * ( ∑ r_i² + 2 ∑ r_i r_j - 2 ∑ r_i + 1 )
+```
 
-Since \( r_i^2 = r_i \) for binary variables:
+Since `r_i² = r_i` for binary variables:
 
-\[
-P \cdot \left( - \sum r_i + 2 \sum_{i < j} r_i r_j + 1 \right)
-\]
+```
+P * ( - ∑ r_i + 2 ∑ r_i r_j + 1 )
+```
 
 This is reflected in the code:
 
 ```python
-linear[variables[i]] += P            # Adds penalty to each binary variable
-quadratic[(r_i, r_j)] = 2 * P        # Enforces exclusivity across pairs
-offset = -2 * P + P                  # Normalizes constant terms
+linear[variables[i]] += P             # Adds penalty to each binary variable
+quadratic[(r_i, r_j)] = 2 * P         # Enforces exclusivity across pairs
+offset = -2 * P + P                   # Normalizes constant terms
+```
+
+## 🧪 Example Use Case
+
+This notebook can be used to evaluate whether offering a high rebate (e.g., 10%) is worth the risk of triggering follow-on demands from other PBMs. The cost model captures both direct and indirect financial consequences, and the QUBO formulation enables the problem to be solved using D-Wave’s quantum annealing methods or classical solvers.
+
+## 🗂️ Repo Structure
+
+```
+QUBO_PBM_Example/
+├── pbm_qubo_model.ipynb        # Jupyter Notebook implementing the QUBO
+├── README.md                   # This file
+├── data/
+│   └── base_losses.csv         # Simulated input data
+└── output/
+    └── best_solution.json      # Sample solution output
+```
+
+## 🛠️ Requirements
+
+- Python 3.8+
+- `dimod`, `dwave-ocean-sdk`, or equivalent libraries
+- Jupyter (optional for notebook use)
+
+## 📄 License
+
+MIT License. Use at your own risk. Not affiliated with any actual PBM or pharma entity.
